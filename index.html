@@ -66,7 +66,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Karte initialisieren
     const map = L.map('map').setView([20, 0], 2);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -74,9 +73,6 @@
       attribution: '&copy; OpenStreetMap-Mitwirkende'
     }).addTo(map);
 
-    // Daten für Großmächte (vereinfacht: Koordinaten und Konflikte)
-    // Format: 
-    // name, [lat, lng], Konfliktländer mit Details (name, Themen)
     const countries = [
       {
         name: 'USA',
@@ -117,14 +113,11 @@
           { country: 'Russland', topics: ['Krieg', 'Territorial'] }
         ]
       }
-      // Weitere Länder nach Bedarf hinzufügen
     ];
 
-    // Länder-Koordinaten Map für Konfliktlinien
     const coordsMap = {};
     countries.forEach(c => coordsMap[c.name] = c.coords);
 
-    // Marker für Länder
     const markers = {};
     countries.forEach(c => {
       const marker = L.circleMarker(c.coords, {
@@ -137,19 +130,15 @@
       marker.bindTooltip(c.name, {permanent: true, direction: 'top'});
       markers[c.name] = marker;
 
-      // Länder polygon färben - hier als Marker, für echte Flächen braucht man GeoJSON (nicht hier)
-      // Bei Klick Linien anzeigen
       marker.on('click', () => showConflictLines(c));
     });
 
     let currentLines = [];
 
     function showConflictLines(country) {
-      // Entferne vorherige Linien
       currentLines.forEach(line => map.removeLayer(line));
       currentLines = [];
 
-      // Hole Konflikte des Landes
       const conflicts = country.conflicts;
 
       if (!conflicts || conflicts.length === 0) return;
@@ -181,11 +170,9 @@
       content.innerHTML = 'Lade News ...';
       popup.style.display = 'block';
 
-      // Baue die Suchanfrage für API zusammen - hier als Beispiel
       const query = `${country1} ${country2} ${topics.join(' ')}`;
 
       try {
-        // Wichtig: Hier deine eigene API-URL eintragen!
         const response = await fetch(
           'https://news-q46nktudy-lukas-projects-c3a3d4d3.vercel.app/api/news?q=' +
             encodeURIComponent(query)
@@ -200,7 +187,6 @@
           return;
         }
 
-        // Zeige News an
         content.innerHTML = '';
         data.articles.forEach(article => {
           const a = document.createElement('a');
