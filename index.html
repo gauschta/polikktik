@@ -2,245 +2,226 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Politische Großmächte Karte mit News</title>
+  <title>Politische Großmächte Konfliktkarte</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
   <style>
-    html,
-    body,
-    #map {
+    html, body, #map {
       height: 100%;
       margin: 0;
     }
-    .country-highlight {
+    .conflict-country {
       fill: red !important;
       fill-opacity: 0.5 !important;
       stroke: darkred !important;
       stroke-width: 2 !important;
-      cursor: pointer;
     }
-    .connection-line {
-      stroke: blue;
-      stroke-width: 3;
-      cursor: pointer;
-    }
-    #newsPopup {
+    #news-popup {
       position: absolute;
       top: 10px;
       right: 10px;
-      width: 300px;
+      width: 350px;
       max-height: 400px;
       overflow-y: auto;
       background: white;
-      border: 2px solid #333;
-      border-radius: 8px;
+      border: 1px solid #aaa;
+      border-radius: 6px;
       padding: 10px;
-      display: none;
       z-index: 10000;
+      display: none;
     }
-    #newsPopup h3 {
+    #news-popup h3 {
       margin-top: 0;
     }
-    #newsPopup button.close-btn {
-      position: absolute;
-      top: 5px;
-      right: 8px;
-      background: #c33;
-      color: white;
-      border: none;
-      border-radius: 4px;
+    #news-popup button.close-btn {
+      float: right;
       cursor: pointer;
-      font-size: 16px;
-      padding: 2px 6px;
+      background: #ddd;
+      border: none;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+    .line {
+      cursor: pointer;
+      stroke: blue;
+      stroke-width: 3;
+      opacity: 0.7;
+    }
+    .line:hover {
+      opacity: 1;
+      stroke-width: 5;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="newsPopup">
-    <button class="close-btn" onclick="closeNews()">✖</button>
+  <div id="news-popup">
+    <button class="close-btn" onclick="document.getElementById('news-popup').style.display='none'">✖</button>
     <h3>News</h3>
-    <div id="newsContent">Lade News...</div>
+    <div id="news-content">Bitte eine Verbindung anklicken</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-geojson-svg@1.0.0/leaflet-geojson-svg.min.js"></script>
   <script>
-    // API URL deiner Vercel-Instanz
-    const API_URL = "https://news-q46nktudy-lukas-projects-c3a3d4d3.vercel.app/api/news?q=";
+    // Karte initialisieren
+    const map = L.map('map').setView([20, 0], 2);
 
-    const map = L.map("map").setView([20, 0], 2);
-
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: "&copy; OpenStreetMap-Mitwirkende",
+      attribution: '&copy; OpenStreetMap-Mitwirkende'
     }).addTo(map);
 
-    // Beispiel Großmächte mit Konflikten
-    // Format: landCode, landName, [array von Konfliktpartnern mit {code, name, topics}]
+    // Daten für Großmächte (vereinfacht: Koordinaten und Konflikte)
+    // Format: 
+    // name, [lat, lng], Konfliktländer mit Details (name, Themen)
     const countries = [
       {
-        code: "USA",
-        name: "USA",
-        latlng: [38, -97],
+        name: 'USA',
+        coords: [38, -97],
         conflicts: [
-          {
-            code: "CHN",
-            name: "China",
-            topics: [
-              "Politischer Konflikt",
-              "Handelsstreit",
-              "Technologie-Wettbewerb",
-            ],
-          },
-          {
-            code: "RUS",
-            name: "Russland",
-            topics: [
-              "Sicherheitskonflikt",
-              "Militärische Spannungen",
-              "Geopolitische Interessen",
-            ],
-          },
-        ],
+          { country: 'China', topics: ['Handel', 'Politik', 'Militär'] },
+          { country: 'Russland', topics: ['Politik', 'Sanktionen'] }
+        ]
       },
       {
-        code: "CHN",
-        name: "China",
-        latlng: [35, 105],
+        name: 'China',
+        coords: [35, 103],
         conflicts: [
-          {
-            code: "USA",
-            name: "USA",
-            topics: [
-              "Politischer Konflikt",
-              "Handelsstreit",
-              "Technologie-Wettbewerb",
-            ],
-          },
-          {
-            code: "IND",
-            name: "Indien",
-            topics: [
-              "Grenzstreitigkeiten",
-              "Regionale Machtbalance",
-              "Politische Spannungen",
-            ],
-          },
-        ],
+          { country: 'USA', topics: ['Handel', 'Politik', 'Militär'] },
+          { country: 'Indien', topics: ['Grenzstreitigkeiten'] }
+        ]
       },
       {
-        code: "RUS",
-        name: "Russland",
-        latlng: [61, 105],
+        name: 'Russland',
+        coords: [60, 100],
         conflicts: [
-          {
-            code: "USA",
-            name: "USA",
-            topics: [
-              "Sicherheitskonflikt",
-              "Militärische Spannungen",
-              "Geopolitische Interessen",
-            ],
-          },
-          {
-            code: "UKR",
-            name: "Ukraine",
-            topics: ["Krieg", "Territoriale Integrität", "Internationale Reaktionen"],
-          },
-        ],
+          { country: 'USA', topics: ['Politik', 'Sanktionen'] },
+          { country: 'Ukraine', topics: ['Krieg', 'Territorial'] }
+        ]
       },
-      // Weitere Großmächte hier ergänzen ...
+      {
+        name: 'Indien',
+        coords: [20, 77],
+        conflicts: [
+          { country: 'China', topics: ['Grenzstreitigkeiten'] },
+          { country: 'Pakistan', topics: ['Territorial', 'Politik'] }
+        ]
+      },
+      {
+        name: 'Ukraine',
+        coords: [49, 32],
+        conflicts: [
+          { country: 'Russland', topics: ['Krieg', 'Territorial'] }
+        ]
+      }
+      // Weitere Länder nach Bedarf hinzufügen
     ];
 
-    // Länder-Circle Layer
-    const countryLayers = {};
+    // Länder-Koordinaten Map für Konfliktlinien
+    const coordsMap = {};
+    countries.forEach(c => coordsMap[c.name] = c.coords);
 
-    // Marker & Linien Layer
-    const connectionLines = [];
+    // Marker für Länder
+    const markers = {};
+    countries.forEach(c => {
+      const marker = L.circleMarker(c.coords, {
+        radius: 12,
+        color: 'red',
+        fillColor: 'red',
+        fillOpacity: 0.5,
+        weight: 2
+      }).addTo(map);
+      marker.bindTooltip(c.name, {permanent: true, direction: 'top'});
+      markers[c.name] = marker;
 
-    // Land-Fläche als rotes Polygon (vereinfacht mit CircleMarker)
-    countries.forEach((country) => {
-      const circle = L.circleMarker(country.latlng, {
-        radius: 30,
-        color: "red",
-        fillColor: "red",
-        fillOpacity: 0.3,
-        weight: 2,
-      })
-        .addTo(map)
-        .bindTooltip(country.name, { permanent: true, direction: "center" })
-        .on("click", () => onCountryClick(country));
-      countryLayers[country.code] = circle;
+      // Länder polygon färben - hier als Marker, für echte Flächen braucht man GeoJSON (nicht hier)
+      // Bei Klick Linien anzeigen
+      marker.on('click', () => showConflictLines(c));
     });
 
-    // Klick auf Land zeigt Konflikt-Linien
-    function onCountryClick(country) {
-      // Alle Linien entfernen
-      connectionLines.forEach((line) => map.removeLayer(line));
-      connectionLines.length = 0;
+    let currentLines = [];
 
-      // Für jeden Konfliktpartner Linie zeichnen
-      country.conflicts.forEach((conflict) => {
-        const partner = countries.find((c) => c.code === conflict.code);
-        if (!partner) return;
+    function showConflictLines(country) {
+      // Entferne vorherige Linien
+      currentLines.forEach(line => map.removeLayer(line));
+      currentLines = [];
 
-        const line = L.polyline([country.latlng, partner.latlng], {
-          color: "blue",
+      // Hole Konflikte des Landes
+      const conflicts = country.conflicts;
+
+      if (!conflicts || conflicts.length === 0) return;
+
+      conflicts.forEach(conflict => {
+        const from = country.coords;
+        const to = coordsMap[conflict.country];
+        if (!to) return;
+
+        const line = L.polyline([from, to], {
+          color: 'blue',
           weight: 3,
-          opacity: 0.7,
-          interactive: true,
+          opacity: 0.7
         }).addTo(map);
 
-        line.on("click", (e) => {
-          e.originalEvent.stopPropagation(); // Verhindert Karten-Klick
-          fetchNewsForConflict(country.name, partner.name);
+        line.on('click', () => {
+          fetchNews(country.name, conflict.country, conflict.topics);
         });
 
-        connectionLines.push(line);
+        line.bindTooltip(`${country.name} ↔ ${conflict.country}`, {sticky:true});
+
+        currentLines.push(line);
       });
     }
 
-    // News Popup close Funktion
-    function closeNews() {
-      const popup = document.getElementById("newsPopup");
-      popup.style.display = "none";
-    }
+    async function fetchNews(country1, country2, topics) {
+      const popup = document.getElementById('news-popup');
+      const content = document.getElementById('news-content');
+      content.innerHTML = 'Lade News ...';
+      popup.style.display = 'block';
 
-    // News von API laden
-    async function fetchNewsForConflict(country1, country2) {
-      const popup = document.getElementById("newsPopup");
-      const content = document.getElementById("newsContent");
-      content.innerHTML = "Lade News...";
-      popup.style.display = "block";
+      // Baue die Suchanfrage für API zusammen - hier als Beispiel
+      const query = `${country1} ${country2} ${topics.join(' ')}`;
 
       try {
-        // Query für beide Länder zusammensetzen
-        const query = encodeURIComponent(`${country1} ${country2} Konflikt`);
-        const response = await fetch(API_URL + query);
-        if (!response.ok) throw new Error("API Fehler");
+        // Wichtig: Hier deine eigene API-URL eintragen!
+        const response = await fetch(
+          'https://news-q46nktudy-lukas-projects-c3a3d4d3.vercel.app/api/news?q=' +
+            encodeURIComponent(query)
+        );
+
+        if (!response.ok) throw new Error('Netzwerkfehler beim Laden der News');
+
         const data = await response.json();
 
-        if (data.articles && data.articles.length > 0) {
-          content.innerHTML = "";
-          data.articles.forEach((article) => {
-            const a = document.createElement("a");
-            a.href = article.url;
-            a.target = "_blank";
-            a.textContent = article.title;
-            a.style.display = "block";
-            a.style.marginBottom = "8px";
-            content.appendChild(a);
-          });
-        } else {
-          content.innerHTML = "Keine aktuellen News gefunden.";
+        if (!data.articles || data.articles.length === 0) {
+          content.innerHTML = '<p>Keine News gefunden.</p>';
+          return;
         }
+
+        // Zeige News an
+        content.innerHTML = '';
+        data.articles.forEach(article => {
+          const a = document.createElement('a');
+          a.href = article.url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = article.title;
+          a.style.display = 'block';
+          a.style.marginBottom = '8px';
+
+          const desc = document.createElement('p');
+          desc.textContent = article.description || '';
+          desc.style.fontSize = 'small';
+          desc.style.marginTop = '0';
+          desc.style.marginBottom = '10px';
+
+          content.appendChild(a);
+          content.appendChild(desc);
+        });
       } catch (err) {
-        content.innerHTML = "Fehler beim Laden der News.";
-        console.error(err);
+        content.innerHTML = `<p>Fehler beim Laden der News: ${err.message}</p>`;
       }
     }
   </script>
